@@ -288,7 +288,7 @@ export function getCommands(options) {
         commands.push({
             name: visibilityLabel,
             id: 'EditPermissions',
-            icon: item.IsPublic ? 'lock' : 'lock_opxn'
+            icon: item.IsPublic ? 'lock' : 'lock_open'
         });
     }
 
