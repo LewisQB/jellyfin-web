@@ -1931,5 +1931,6 @@
     "LabelTrickplayKeyFrameOnlyExtraction": "Only generate images from key frames",
     "Reset": "Reset",
     "MediaInfoRotation": "Rotation",
+    "EditPermissions": "Edit Permissions",
     "LibraryInvalidItemIdError": "The library is in an invalid state and cannot be edited. You are possibly encountering a bug: the path in the database is not the correct path on the filesystem."
 }

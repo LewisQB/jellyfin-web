@@ -283,6 +283,15 @@ export function getCommands(options) {
         });
     }
 
+    if (item.Type === 'Playlist' && options.changeVisibility !== false) {
+        const visibilityLabel = item.IsPublic ? globalize.translate('Make Private') : globalize.translate('Make Public');
+        commands.push({
+            name: visibilityLabel,
+            id: 'EditPermissions',
+            icon: item.IsPublic ? 'lock' : 'lock_opxn'
+        });
+    }
+
     if (item.PlaylistItemId && options.playlistId && options.canEditPlaylist) {
         commands.push({
             name: globalize.translate('RemoveFromPlaylist'),
@@ -369,6 +378,24 @@ function executeCommand(item, id, options) {
     return new Promise(function (resolve, reject) {
         // eslint-disable-next-line sonarjs/max-switch-cases
         switch (id) {
+            case 'toggleVisibility': {
+                const newVisibility = !item.IsPublic; // Toggle the visibility
+                apiClient.ajax({
+                    url: apiClient.getUrl('Playlists/' + item.Id + '/Visibility'),
+                    type: 'POST',
+                    data: { IsPublic: newVisibility }
+                }).then(() => {
+                    // Update the item visibility status after the server confirms the change
+                    item.IsPublic = newVisibility;
+                    toast(newVisibility ? globalize.translate('PlaylistIsNowPublic') : globalize.translate('PlaylistIsNowPrivate'));
+                    getResolveFunction(resolve, id)();
+                }).catch(() => {
+                    toast(globalize.translate('FailedToChangeVisibility'));
+                    reject();
+                });
+                break;
+            }
+
             case 'addtocollection':
                 import('./collectionEditor/collectionEditor').then(({ default: CollectionEditor }) => {
                     const collectionEditor = new CollectionEditor();
