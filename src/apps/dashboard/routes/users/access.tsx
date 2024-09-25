@@ -1,4 +1,4 @@
-import type { BaseItemDto, DeviceInfo, UserDto } from '@jellyfin/sdk/lib/generated-client';
+import type { BaseItemDto, DeviceInfoDto, UserDto } from '@jellyfin/sdk/lib/generated-client';
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -17,6 +17,7 @@ type ItemsArr = {
     Name?: string | null;
     Id?: string | null;
     AppName?: string | null;
+    CustomName?: string | null;
     checkedAttribute?: string
 };
 
@@ -95,7 +96,7 @@ const UserLibraryAccess = () => {
         triggerChange(chkEnableAllChannels);
     }, []);
 
-    const loadDevices = useCallback((user: UserDto, devices: DeviceInfo[]) => {
+    const loadDevices = useCallback((user: UserDto, devices: DeviceInfoDto[]) => {
         const page = element.current;
 
         if (!page) {
@@ -112,6 +113,7 @@ const UserLibraryAccess = () => {
                 Id: device.Id,
                 Name: device.Name,
                 AppName: device.AppName,
+                CustomName: device.CustomName,
                 checkedAttribute: checkedAttribute
             });
         }
@@ -129,7 +131,7 @@ const UserLibraryAccess = () => {
         }
     }, []);
 
-    const loadUser = useCallback((user: UserDto, mediaFolders: BaseItemDto[], channels: BaseItemDto[], devices: DeviceInfo[]) => {
+    const loadUser = useCallback((user: UserDto, mediaFolders: BaseItemDto[], channels: BaseItemDto[], devices: DeviceInfoDto[]) => {
         setUserName(user.Name || '');
         libraryMenu.setTitle(user.Name);
         loadChannels(user, channels);
@@ -307,7 +309,7 @@ const UserLibraryAccess = () => {
                                 key={Item.Id}
                                 className='chkDevice'
                                 itemId={Item.Id}
-                                itemName={Item.Name}
+                                itemName={Item.CustomName || Item.Name}
                                 itemAppName={Item.AppName}
                                 itemCheckedAttribute={Item.checkedAttribute}
                             />

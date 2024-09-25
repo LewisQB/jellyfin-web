@@ -1318,7 +1318,7 @@ function renderTags(page, item) {
             serverId: item.ServerId
         });
         tagElements.push(
-            `<a href="${href}" class="button-link emby-button" is="emby-linkbutton">`
+            `<a href="${href}" class="button-link" is="emby-linkbutton">`
             + escapeHtml(tag)
             + '</a>'
         );
@@ -1735,7 +1735,7 @@ function renderCollectionItemType(page, parentItem, type, items) {
         items: items,
         shape: shape,
         showTitle: true,
-        showYear: type.mediaType === 'Video' || type.type === 'Series',
+        showYear: type.mediaType === 'Video' || type.type === 'Series' || type.type === 'Movie',
         centerText: true,
         lazy: true,
         showDetailsMenu: true,
