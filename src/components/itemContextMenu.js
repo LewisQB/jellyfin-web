@@ -284,11 +284,11 @@ export function getCommands(options) {
     }
 
     if (item.Type === 'Playlist' && options.changeVisibility !== false) {
-        const visibilityLabel = item.IsPublic ? globalize.translate('Make Private') : globalize.translate('Make Public');
+        const visibilityLabel =  globalize.translate('Edit Permissions');
         commands.push({
             name: visibilityLabel,
             id: 'EditPermissions',
-            icon: item.IsPublic ? 'lock' : 'lock_open'
+            icon: 'lock' 
         });
     }
 
@@ -395,6 +395,11 @@ function executeCommand(item, id, options) {
                 });
                 break;
             }
+            
+            case 'EditPermissions':
+                editPermissions(apiClient, item);
+                getResolveFunction(resolve, id)();
+                break;
 
             case 'addtocollection':
                 import('./collectionEditor/collectionEditor').then(({ default: CollectionEditor }) => {
@@ -731,6 +736,16 @@ function deleteItem(apiClient, item) {
 function refresh(apiClient, item) {
     import('./refreshdialog/refreshdialog').then(({ default: RefreshDialog }) => {
         new RefreshDialog({
+            itemIds: [item.Id],
+            serverId: apiClient.serverInfo().Id,
+            mode: item.Type === 'CollectionFolder' ? 'scan' : null
+        }).show();
+    });
+}
+
+function editPermissions(apiClient, item) {
+    import('./permissionsDialog/permissionsDialog').then(({ default: PermissionsDialog }) => {
+        new PermissionsDialog({
             itemIds: [item.Id],
             serverId: apiClient.serverInfo().Id,
             mode: item.Type === 'CollectionFolder' ? 'scan' : null
