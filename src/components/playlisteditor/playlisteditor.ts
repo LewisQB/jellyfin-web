@@ -241,7 +241,7 @@ function getEditorHtml(items: string[]) {
     </div>`;
 
     // Add user permissions section
-    html += `
+    /*html += `
     <div class="userPermissionsContainer">
         <label>${globalize.translate('UserPermissions')}</label>
         <div id="userPermissions">
@@ -264,7 +264,7 @@ function getEditorHtml(items: string[]) {
             </div>
             <!-- Add more user controls as needed -->
         </div>
-    </div>`;
+    </div>`; */
 
     // newPlaylistInfo
     html += '</div>';
