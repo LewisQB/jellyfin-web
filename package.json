@@ -88,7 +88,6 @@
     "@tanstack/react-query-devtools": "5.56.2",
     "@types/react-lazy-load-image-component": "1.6.4",
     "abortcontroller-polyfill": "1.7.5",
-    "axios": "1.7.7",
     "blurhash": "2.0.5",
     "classlist.js": "https://github.com/eligrey/classList.js/archive/1.2.20180112.tar.gz",
     "classnames": "2.5.1",
