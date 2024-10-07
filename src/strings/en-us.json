@@ -1190,6 +1190,7 @@
     "Normal": "Normal",
     "NoSubtitleSearchResultsFound": "No results found.",
     "NoSubtitlesHelp": "Subtitles will not be loaded by default. They can still be turned on manually during playback.",
+    "NoUsersFound": "No users found.",
     "NumLocationsValue": "{0} folders",
     "Off": "Off",
     "OnApplicationStartup": "On application startup",
