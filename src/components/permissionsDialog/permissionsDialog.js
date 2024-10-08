@@ -13,7 +13,6 @@ import '../formdialog.scss';
 import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
 import { getPlaylistsApi } from '@jellyfin/sdk/lib/utils/api/playlists-api';
-import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
 import { toApi } from 'utils/jellyfin-apiclient/compat';
 
 function getEditorHeaderHtml() {
@@ -111,25 +110,21 @@ function onSubmit(e) {
 class PermissionsDialog {
     constructor(options) {
         this.options = options;
-        this.itemId = this.options.itemIds[0]; // itemIds is an array with one item
+        this.itemId = this.options.itemIds[0];
         this.serverId = this.options.serverId;
         this.apiClient = ServerConnections.getApiClient(this.serverId);
         this.playlistApi = getPlaylistsApi(toApi(this.apiClient));
-        this.itemsApi = getItemsApi(toApi(this.apiClient));
     }
 
     // Gets a list of all users then also gets their permissions for this playlist
     async getAllUsers() {
-        // Create a list of all users
         const allUsers = await this.apiClient.getUsers();
-        console.log(allUsers);
         if (allUsers != 'undefined') {
             if (allUsers.length === 0) {
                 return null;
             } else {
                 for (const user of allUsers) {
                     user.permissions = { CanEdit: (await this.playlistApi.getPlaylistUser({ playlistId: this.itemId, userId: user.Id })).data.CanEdit };
-                    console.log(user.Name, user.permissions);
                 }
             }
         } else {
@@ -196,7 +191,6 @@ class PermissionsDialog {
 
         if (users != null) {
             for (const user of users) {
-                console.log(user.permissions);
                 const editPermissions = user.permissions?.CanEdit;
 
                 const userHTML = dlg.querySelector('.USER' + user.Id);
