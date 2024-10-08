@@ -12,6 +12,9 @@ import 'material-design-icons-iconfont';
 import '../formdialog.scss';
 import ServerConnections from '../ServerConnections';
 import toast from '../toast/toast';
+import { getPlaylistsApi } from '@jellyfin/sdk/lib/utils/api/playlists-api';
+import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
+import { toApi } from 'utils/jellyfin-apiclient/compat';
 
 function getEditorHeaderHtml() {
     let html = '';
@@ -22,7 +25,7 @@ function getEditorHeaderHtml() {
 
     html += '<div class="fldSelectPlaylist selectContainer">';
     html += '<select is="emby-select" id="selectViewPermissions" label="' + globalize.translate('SetVisibility') + '">';
-    html += '<option value="private" selected>' + globalize.translate('MakePrivate') + '</option>';
+    html += '<option value="private">' + globalize.translate('MakePrivate') + '</option>';
     html += '<option value="public">' + globalize.translate('MakePublic') + '</option>';
     html += '</select>';
     html += '</div>';
@@ -52,14 +55,10 @@ function getEditorFooterHtml() {
 
 function getUserPermssionHtml(user) {
     let html = '';
-    html += '<div class="userPermissions ' + user.Name + '">';
+    html += '<div class="userPermissions USER' + user.Id + '">';
     html += '<div class="userPermissionHeader">';
     html += user.Name;
     html += '</div>';
-    html += '<label class="checkboxContainer fldViewPermissions">';
-    html += '<input type="checkbox" is="emby-checkbox" class="chkViewPermissions" />';
-    html += '<span>' + globalize.translate('ViewPermissions') + '</span>';
-    html += '</label>';
 
     html += '<label class="checkboxContainer fldEditPermissions">';
     html += '<input type="checkbox" is="emby-checkbox" class="chkEditPermissions" />';
@@ -88,16 +87,12 @@ function onSubmit(e) {
     const replaceAllMetadata = dlg.querySelector('#selectViewPermissions').value === 'all';
 
     const mode = dlg.querySelector('#selectViewPermissions').value === 'private' ? 'Default' : 'FullRefresh';
-    const replaceAllImages = mode === 'FullRefresh' && dlg.querySelector('.chkReplaceImages').checked;
-    const replaceTrickplayImages = mode === 'FullRefresh' && dlg.querySelector('.chkReplaceTrickplayImages').checked;
 
     options.itemIds.forEach(function (itemId) {
         apiClient.refreshItem(itemId, {
             Recursive: true,
             ImageRefreshMode: mode,
             MetadataRefreshMode: mode,
-            ReplaceAllImages: replaceAllImages,
-            RegenerateTrickplay: replaceTrickplayImages,
             ReplaceAllMetadata: replaceAllMetadata
         });
     });
@@ -119,6 +114,8 @@ class PermissionsDialog {
         this.itemId = this.options.itemIds[0]; // itemIds is an array with one item
         this.serverId = this.options.serverId;
         this.apiClient = ServerConnections.getApiClient(this.serverId);
+        this.playlistApi = getPlaylistsApi(toApi(this.apiClient));
+        this.itemsApi = getItemsApi(toApi(this.apiClient));
     }
 
     // Gets a list of all users then also gets their permissions for this playlist
@@ -128,34 +125,18 @@ class PermissionsDialog {
         console.log(allUsers);
         if (allUsers != 'undefined') {
             if (allUsers.length === 0) {
-                return 'undefined';
+                return null;
             } else {
                 for (const user of allUsers) {
-                    user.permissions = this.apiClient.getJSON('Playlists/' + this.itemId + '/Users/' + user.Id);
+                    user.permissions = { CanEdit: (await this.playlistApi.getPlaylistUser({ playlistId: this.itemId, userId: user.Id })).data.CanEdit };
+                    console.log(user.Name, user.permissions);
                 }
             }
+        } else {
+            return null;
         }
-        // const currentUser = this.apiClient.getCurrentUser();
-        // Filter out the current user
-        return allUsers; // .filter((user) => user.id !== currentUser.Id);
-    }
-
-    // Update the permissions for a specific user
-    // Entering a null permissions object will remove the user's permissions
-    updateUserPermissions(user, permissions) {
-        user.modified = true;
-        user.permissions = permissions;
-    }
-
-    // Sends the request to update the permissions for a specific user
-    // Seperate from updateUserPermissions to allow for batch updating and performance improvements
-    sendUpdateRequest(userId, permissions) {
-        return this.apiClient.ajax({
-            type: 'POST',
-            url: 'Playlists/' + this.itemId + '/Users/' + userId,
-            data: JSON.stringify(permissions),
-            contentType: 'application/json'
-        });
+        const currentUser = await this.apiClient.getCurrentUser();
+        return allUsers.filter((user) => user.Id !== currentUser.Id);
     }
 
     async show() {
@@ -185,8 +166,22 @@ class PermissionsDialog {
         html += '</div>';
         html += getEditorHeaderHtml();
 
+        const updateUserPermissions = (user, canEdit = false) => {
+            user.permissions = { CanEdit: canEdit };
+        };
+
+        const submitUserPermissions = async (user) => {
+            const permissions = user.permissions;
+            if (permissions != null && permissions.CanEdit === true) {
+                await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: permissions });
+            } else {
+                await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: { CanEdit: false } });
+            }
+        };
+
+        // Retrieve all users and their permissions
         const users = await this.getAllUsers();
-        if (users != 'undefined') {
+        if (users != null) {
             for (const user of users ) {
                 html += getUserPermssionHtml(user);
             }
@@ -199,43 +194,34 @@ class PermissionsDialog {
 
         dlg.innerHTML = html;
 
-        dlg.querySelector('form').addEventListener('submit', onSubmit.bind(this));
+        if (users != null) {
+            for (const user of users) {
+                console.log(user.permissions);
+                const editPermissions = user.permissions?.CanEdit;
 
-        // Adds listeners to the checkboxes to show/hide the edit permissions field
-        dlg.querySelectorAll('.chkViewPermissions').forEach(function (chkViewPermissions) {
-            chkViewPermissions.addEventListener('change', function () {
-                const userHTML = dom.parentWithClass(chkViewPermissions, 'userPermissions');
-                const hasViewPermissions = chkViewPermissions.checked;
-                if (!hasViewPermissions) {
-                    if (!userHTML.querySelector('.fldEditPermissions').classList.contains('hide')) {
-                        userHTML.querySelector('.fldEditPermissions').classList.add('hide');
-                    }
-                } else if (userHTML.querySelector('.fldEditPermissions').classList.contains('hide')) {
-                    userHTML.querySelector('.fldEditPermissions').classList.remove('hide');
-                }
-            });
-        });
+                const userHTML = dlg.querySelector('.USER' + user.Id);
+                userHTML.querySelector('.chkEditPermissions').checked = !!editPermissions;
+            }
 
-        // Adds listener to the public/private selection to show/hide the permissions fields
-        dlg.querySelector('#selectViewPermissions').addEventListener('change', function () {
-            if (this.value === 'private') {
-                dlg.querySelectorAll('.userPermissions').forEach(function (userHTML) {
-                    userHTML.querySelector('.fldViewPermissions').classList.remove('hide');
-                    const hasViewPermissions = userHTML.querySelector('.chkViewPermissions').checked;
-                    if (!hasViewPermissions) {
-                        if (!userHTML.querySelector('.fldEditPermissions').classList.contains('hide')) {
-                            userHTML.querySelector('.fldEditPermissions').classList.add('hide');
-                        }
-                    } else if (userHTML.querySelector('.fldEditPermissions').classList.contains('hide')) {
-                        userHTML.querySelector('.fldEditPermissions').classList.remove('hide');
-                    }
-                });
-            } else {
-                dlg.querySelectorAll('.userPermissions').forEach(function (userHTML) {
-                    userHTML.querySelector('.fldViewPermissions').classList.add('hide');
-                    userHTML.querySelector('.fldEditPermissions').classList.remove('hide');
+            // Adds listeners to the checkboxes to update the permissions object and UI
+            for (const user of users) {
+                const userHTML = dlg.querySelector('.USER' + user.Id);
+                userHTML.querySelector('.chkEditPermissions').addEventListener('change', function () {
+                    const hasEditPermissions = this.checked;
+                    updateUserPermissions(user, hasEditPermissions);
                 });
             }
+        }
+
+        dlg.querySelector('#selectViewPermissions').value = 'private';
+
+        dlg.querySelector('form').addEventListener('submit', async (e) => {
+            const isPublic = dlg.querySelector('#selectViewPermissions').value === 'public';
+            await this.playlistApi.updatePlaylist({ playlistId: this.itemId, updatePlaylistDto: { IsPublic:  isPublic } });
+            for (const user of users) {
+                submitUserPermissions(user);
+            }
+            onSubmit.bind(this)(e);
         });
 
         if (this.options.mode) {
