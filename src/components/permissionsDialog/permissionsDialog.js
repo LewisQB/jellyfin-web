@@ -187,7 +187,7 @@ class PermissionsDialog {
             } else if (permissions != null && permissions.CanEdit === false) {
                 await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: { CanEdit: false } });
             } else {
-                await this.playlistApi.deletePlaylistUser({ playlistId: this.itemId, userId: user.Id });
+                await this.playlistApi.removeUserFromPlaylist({ playlistId: this.itemId, userId: user.Id });
             }
         };
 
