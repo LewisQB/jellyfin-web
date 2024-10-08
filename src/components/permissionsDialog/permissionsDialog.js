@@ -59,6 +59,11 @@ function getUserPermssionHtml(user) {
     html += user.Name;
     html += '</div>';
 
+    html += '<label class="checkboxContainer fldViewPermissions">';
+    html += '<input type="checkbox" is="emby-checkbox" class="chkViewPermissions" />';
+    html += '<span>' + globalize.translate('ViewPermissions') + '</span>';
+    html += '</label>';
+
     html += '<label class="checkboxContainer fldEditPermissions">';
     html += '<input type="checkbox" is="emby-checkbox" class="chkEditPermissions" />';
     html += '<span>' + globalize.translate('EditPermissions') + '</span>';
@@ -161,16 +166,28 @@ class PermissionsDialog {
         html += '</div>';
         html += getEditorHeaderHtml();
 
-        const updateUserPermissions = (user, canEdit = false) => {
-            user.permissions = { CanEdit: canEdit };
+        const updateUserPermissions = (user, canView, canEdit = false) => {
+            if (canView) {
+                user.permissions = { CanEdit: canEdit };
+            } else {
+                user.permissions = null;
+            }
+            const playlistIsPublic = dlg.querySelector('#selectViewPermissions').value === 'public';
+            if (!canView && !playlistIsPublic) {
+                dlg.querySelector('.USER' + user.Id).querySelector('.chkEditPermissions').classList.add('hide');
+            } else {
+                dlg.querySelector('.USER' + user.Id).querySelector('.chkEditPermissions').classList.remove('hide');
+            }
         };
 
         const submitUserPermissions = async (user) => {
             const permissions = user.permissions;
             if (permissions != null && permissions.CanEdit === true) {
-                await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: permissions });
-            } else {
+                await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: { CanEdit: true } });
+            } else if (permissions != null && permissions.CanEdit === false) {
                 await this.playlistApi.updatePlaylistUser({ playlistId: this.itemId, userId: user.Id, updatePlaylistUserDto: { CanEdit: false } });
+            } else {
+                await this.playlistApi.deletePlaylistUser({ playlistId: this.itemId, userId: user.Id });
             }
         };
 
@@ -194,6 +211,7 @@ class PermissionsDialog {
                 const editPermissions = user.permissions?.CanEdit;
 
                 const userHTML = dlg.querySelector('.USER' + user.Id);
+                userHTML.querySelector('.chkViewPermissions').checked = !!user.permissions;
                 userHTML.querySelector('.chkEditPermissions').checked = !!editPermissions;
             }
 
@@ -202,9 +220,37 @@ class PermissionsDialog {
                 const userHTML = dlg.querySelector('.USER' + user.Id);
                 userHTML.querySelector('.chkEditPermissions').addEventListener('change', function () {
                     const hasEditPermissions = this.checked;
-                    updateUserPermissions(user, hasEditPermissions);
+                    updateUserPermissions(user, true, hasEditPermissions);
+                });
+                userHTML.querySelector('.chkViewPermissions').addEventListener('change', function () {
+                    const hasViewPermissions = this.checked;
+                    if (!hasViewPermissions) {
+                        userHTML.querySelector('.chkEditPermissions').checked = false;
+                        userHTML.querySelector('.fldEditPermissions').classList.add('hide');
+                    } else {
+                        userHTML.querySelector('.fldEditPermissions').classList.remove('hide');
+                    }
+                    updateUserPermissions(user, hasViewPermissions, false);
                 });
             }
+
+            dlg.querySelector('#selectViewPermissions').addEventListener('change', function () {
+                const isPublic = this.value === 'public';
+                for (const user of users) {
+                    const canView = !!user.permissions;
+                    const userHTML = dlg.querySelector('.USER' + user.Id);
+                    if (!isPublic && !canView) {
+                        userHTML.querySelector('.fldEditPermissions').classList.add('hide');
+                    } else {
+                        userHTML.querySelector('.fldEditPermissions').classList.remove('hide');
+                    }
+                    if (isPublic) {
+                        userHTML.querySelector('.fldViewPermissions').classList.add('hide');
+                    } else {
+                        userHTML.querySelector('.fldViewPermissions').classList.remove('hide');
+                    }
+                }
+            });
         }
 
         dlg.querySelector('#selectViewPermissions').value = 'private';
