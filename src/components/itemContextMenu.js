@@ -284,11 +284,11 @@ export function getCommands(options) {
     }
 
     if (item.Type === 'Playlist' && options.changeVisibility !== false) {
-        const visibilityLabel =  globalize.translate('Edit Permissions');
+        const visibilityLabel = globalize.translate('Edit Permissions');
         commands.push({
             name: visibilityLabel,
             id: 'EditPermissions',
-            icon: 'lock' 
+            icon: 'lock'
         });
     }
 
@@ -395,7 +395,6 @@ function executeCommand(item, id, options) {
                 });
                 break;
             }
-            
             case 'EditPermissions':
                 editPermissions(apiClient, item);
                 getResolveFunction(resolve, id)();

@@ -240,32 +240,6 @@ function getEditorHtml(items: string[]) {
         </div>
     </div>`;
 
-    // Add user permissions section
-    /*html += `
-    <div class="userPermissionsContainer">
-        <label>${globalize.translate('UserPermissions')}</label>
-        <div id="userPermissions">
-            <!-- Example user permissions controls -->
-            <div>
-                <label for="user1">User 1</label>
-                <select id="user1" name="user Permissions[user1]">
-                    <option value="none">None</option>
-                    <option value="read">Read</option>
-                    <option value="write">Write</option>
-                </select>
-            </div>
-            <div>
-                <label for="user2">User 2</label>
-                <select id="user2" name="user Permissions[user2]">
-                    <option value="none">None</option>
-                    <option value="read">Read</option>
-                    <option value="write">Write</option>
-                </select>
-            </div>
-            <!-- Add more user controls as needed -->
-        </div>
-    </div>`; */
-
     // newPlaylistInfo
     html += '</div>';
 
